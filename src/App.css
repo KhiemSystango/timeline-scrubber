@@ -1,9 +1,13 @@
 svg {
   display: block;
   width: 100%;
-  height: 300px;
-  background: #f7f7f7;
+  /* height: 300px; */
+  background: #000;
   overflow: visible;
+}
+
+.vertical-line {
+  color: white;
 }
 
 svg rect.selection {
@@ -11,7 +15,7 @@ svg rect.selection {
 }
 
 #root {
-  max-width: 600px;
+  /* max-width: 600px; */
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -49,4 +53,8 @@ video {
 
 .field input {
   margin-right: 0.5em;
+}
+
+.x-axis .domain {
+  color: #000;
 }

@@ -8,6 +8,12 @@ import {
   axisBottom,
   axisLeft,
   zoom,
+  map,
+  scaleTime,
+  extent,
+  pointer,
+  mouse,
+  bisector,
 } from "d3";
 import useResizeObserver from "./useResizeObserver";
 
@@ -15,11 +21,12 @@ import useResizeObserver from "./useResizeObserver";
  * Component that renders a ZoomableLineChart
  */
 
-function ZoomableLineChart({ data, id = "myZoomableLineChart" }) {
+function ZoomableBarChart4({ data, id = "myZoomableLineChart" }) {
   const svgRef = useRef();
   const wrapperRef = useRef();
   const dimensions = useResizeObserver(wrapperRef);
   const [currentZoomState, setCurrentZoomState] = useState();
+  const [display, setDisplay] = useState({ date: null, value: 0 });
 
   // will be called initially and on every data change
   useEffect(() => {
@@ -28,34 +35,30 @@ function ZoomableLineChart({ data, id = "myZoomableLineChart" }) {
     const { width, height } =
       dimensions || wrapperRef.current.getBoundingClientRect();
 
+    const X = map(data, (v, i) => new Date(v.date));
+    const Y = map(data, (v, i) => v.value);
+
     // scales + line generator
-    const xScale = scaleLinear()
-      .domain([0, data.length - 1])
+    const xScale = scaleTime()
+      .domain(extent(X))
       .range([10, width - 10]);
 
     if (currentZoomState) {
       const newXScale = currentZoomState.rescaleX(xScale);
       xScale.domain(newXScale.domain());
     }
+    const xAxis = axisBottom(xScale);
+    svg
+      .select(".x-axis")
+      .attr("transform", `translate(0, ${height})`)
+      .call(xAxis);
 
     const yScale = scaleLinear()
-      .domain([0, max(data)])
+      .domain([0, max(Y)])
       .range([height - 10, 10]);
 
-    const lineGenerator = line()
-      .x((d, index) => xScale(index))
-      .y((d) => yScale(d))
-      .curve(curveCardinal);
-
-    // render the line
-    svgContent
-      .selectAll(".myLine")
-      .data([data])
-      .join("path")
-      .attr("class", "myLine")
-      .attr("stroke", "black")
-      .attr("fill", "none")
-      .attr("d", lineGenerator);
+    const yAxis = axisLeft(yScale);
+    svg.select(".y-axis").call(yAxis);
 
     svgContent
       .selectAll(".myDot")
@@ -65,18 +68,40 @@ function ZoomableLineChart({ data, id = "myZoomableLineChart" }) {
       .attr("stroke", "black")
       .attr("r", 4)
       .attr("fill", "orange")
-      .attr("cx", (value, index) => xScale(index))
-      .attr("cy", yScale);
+      .attr("cx", (d) => xScale(new Date(d.date)))
+      .attr("cy", (d) => yScale(d.value))
+      .on("click", function (e, d) {
+        setDisplay(d);
+      });
 
-    // axes
-    const xAxis = axisBottom(xScale);
-    svg
-      .select(".x-axis")
-      .attr("transform", `translate(0, ${height})`)
-      .call(xAxis);
+    const rule = svg
+      .append("line")
+      .attr("stroke", "#000")
+      .attr("y1", 0)
+      .attr("y2", height)
+      .attr("x1", 0.5)
+      .attr("x2", 0.5);
 
-    const yAxis = axisLeft(yScale);
-    svg.select(".y-axis").call(yAxis);
+    // const bisect = bisector(function (d) {
+    //   return d.date;
+    // }).left;
+
+    const bisectDate = bisector(function (d, x) {
+      return new Date(d.date) - x;
+    }).right;
+    // var dat = new Date(2014, 4, 1);
+    // document.write(bisectDate(data, dat));
+
+    svg.on("click", (event) => {
+      const x = pointer(event, svg.node())[0] + 0.5;
+      rule.attr("x1", x + 1).attr("x2", x + 1);
+
+      const coords = pointer(event, svg.node());
+      const x0 = xScale.invert(coords[0]);
+      const i = bisectDate(data, x0);
+      let selectedData = data[i];
+      setDisplay(selectedData);
+    });
 
     // zoom
     const zoomBehavior = zoom()
@@ -95,7 +120,10 @@ function ZoomableLineChart({ data, id = "myZoomableLineChart" }) {
 
   return (
     <React.Fragment>
-      <div ref={wrapperRef} style={{ marginBottom: "2rem" }}>
+      <div
+        ref={wrapperRef}
+        style={{ marginBottom: "2rem", position: "relative" }}
+      >
         <svg ref={svgRef} style={{ height: "300px" }}>
           <defs>
             <clipPath id={id}>
@@ -107,8 +135,10 @@ function ZoomableLineChart({ data, id = "myZoomableLineChart" }) {
           <g className="y-axis" />
         </svg>
       </div>
+      <div>{display.date}</div>
+      <div>{display.value}</div>
     </React.Fragment>
   );
 }
 
-export default ZoomableLineChart;
+export default ZoomableBarChart4;
