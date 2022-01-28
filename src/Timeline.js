@@ -16,6 +16,10 @@ import {
   bisector,
   event,
   axisTop,
+  transition,
+  timeParse,
+  timeFormat,
+  timeDay,
 } from "d3";
 import useResizeObserver from "./useResizeObserver";
 
@@ -50,7 +54,9 @@ function Timeline({ data, id = "myZoomableLineChart" }) {
       const newXScale = currentZoomState.rescaleX(xScale);
       xScale.domain(newXScale.domain());
     }
+
     const xAxis = axisTop(xScale);
+
     svg
       .select(".x-axis")
       .attr("transform", `translate(0, ${height})`)
@@ -93,12 +99,12 @@ function Timeline({ data, id = "myZoomableLineChart" }) {
       })
       .on("mouseup", (event) => {
         isDown = false;
-        svg.call(zoomBehavior);
+        svg.call(zoomBehavior).on("dblclick.zoom", null);
       });
 
     // zoom
     const zoomBehavior = zoom()
-      .scaleExtent([0.5, 5])
+      .scaleExtent([1, Infinity])
       .translateExtent([
         [0, 0],
         [width, height],
@@ -112,8 +118,8 @@ function Timeline({ data, id = "myZoomableLineChart" }) {
       });
 
     if (!isDown) {
-      svg.call(zoomBehavior);
-      lul.call(zoomBehavior);
+      svg.call(zoomBehavior).on("dblclick.zoom", null);
+      lul.call(zoomBehavior).on("dblclick.zoom", null);
     } else {
       svg.on(".zoom", null);
       lul.on(".zoom", null);
@@ -148,7 +154,7 @@ function Timeline({ data, id = "myZoomableLineChart" }) {
       })
       .on("mouseup", (event) => {
         isDown = false;
-        lul.call(zoomBehavior);
+        lul.call(zoomBehavior).on("dblclick.zoom", null);
       });
 
     // const handleKeydown = (e) => {
